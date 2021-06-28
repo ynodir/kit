@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"math"
 	"math/rand"
+	"reflect"
 	"sync"
 	"testing"
 
@@ -29,6 +30,24 @@ func TestCounter(t *testing.T) {
 	value := counter.Value
 	if err := teststat.TestCounter(counter, value); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestIssue525(t *testing.T) {
+	counterWithoutLabels := generic.NewCounter("issue525_counter")
+	counterWithLabels := counterWithoutLabels.With("label", "counter").(*generic.Counter)
+	if want, have := []string{"label", "counter"}, counterWithLabels.LabelValues(); !reflect.DeepEqual(want, have) {
+		t.Errorf("Label values mismatch: want %+v, have %+v", want, have)
+	}
+
+	counterWithoutLabels.Add(1)
+	counterWithLabels.Add(1)
+	counterWithLabels.Add(1)
+	if want, have := float64(1), counterWithoutLabels.Value(); want != have {
+		t.Errorf("Wrong counter value: want %f, have %f", want, have)
+	}
+	if want, have := float64(2), counterWithLabels.Value(); want != have {
+		t.Errorf("Wrong counter value: want %f, have %f", want, have)
 	}
 }
 
